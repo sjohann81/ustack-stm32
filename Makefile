@@ -20,11 +20,23 @@ AFLAGS = 	-DUSTACK_IP_ADDR=\"$(USTACK_IP_ADDR)\" \
 		-DUSTACK_TAP_ADDR=\"$(USTACK_TAP_ADDR)\" \
 		-DUSTACK_TAP_ROUTE=\"$(USTACK_TAP_ROUTE)\" 
 
+CC = arm-none-eabi-gcc
+AS = arm-none-eabi-as
+LD = arm-none-eabi-ld
+DUMP = arm-none-eabi-objdump
+READ = arm-none-eabi-readelf
+OBJ = arm-none-eabi-objcopy
+SIZE = arm-none-eabi-size
+AR = arm-none-eabi-ar
+
+PROG		= firmware
+
 PROJECT_DIR	= .
 HAL_DIR		= $(PROJECT_DIR)/src/hal
 CMSIS_DIR	= $(PROJECT_DIR)/src/cmsis
 USBCDC_DIR	= $(PROJECT_DIR)/src/usb_cdc
 USTACK_DIR	= $(PROJECT_DIR)/src/ustack
+APP_DIR		= $(PROJECT_DIR)/src
 
 # this is stuff specific to this architecture
 INC_DIRS  = \
@@ -50,93 +62,97 @@ MCU_DEFINES = -mcpu=cortex-m4 -mtune=cortex-m4 -mfloat-abi=hard -mthumb -fsingle
 #MCU_DEFINES = -mcpu=cortex-m4 -mtune=cortex-m4 -mfloat-abi=soft -mthumb -fsingle-precision-constant
 C_DEFINES = -D STM32F401xC -D HSE_VALUE=25000000
 #C_DEFINES = -D STM32F407xx -D HSE_VALUE=8000000
-CFLAGS = -Wall -O2 -c $(MCU_DEFINES) -mapcs-frame -fverbose-asm -nostdlib -ffreestanding $(C_DEFINES) $(INC_DIRS) -D USART_BAUD=$(SERIAL_BR) -D USART_PORT=$(SERIAL_PORT) $(CFLAGS_STRIP) $(AFLAGS)
+CFLAGS = -Wall -O2 -c $(MCU_DEFINES) -mapcs-frame -fverbose-asm -nostdlib -ffreestanding $(C_DEFINES) $(INC_DIRS) -D USART_BAUD=$(SERIAL_BR) -D USART_PORT=$(SERIAL_PORT) $(CFLAGS_STRIP)
 
 LDFLAGS = $(LDFLAGS_STRIP)
 LDSCRIPT = $(HAL_DIR)/stm32f4_flash.ld
 
-CC = arm-none-eabi-gcc
-AS = arm-none-eabi-as
-LD = arm-none-eabi-ld
-DUMP = arm-none-eabi-objdump
-READ = arm-none-eabi-readelf
-OBJ = arm-none-eabi-objcopy
-SIZE = arm-none-eabi-size
-AR = arm-none-eabi-ar
+CMSIS_SRC = \
+	$(CMSIS_DIR)/device/stm32f4xx_rcc.c    \
+	$(CMSIS_DIR)/device/stm32f4xx_gpio.c   \
+	$(CMSIS_DIR)/device/stm32f4xx_tim.c   \
+	$(CMSIS_DIR)/device/stm32f4xx_adc.c   \
+	$(CMSIS_DIR)/device/stm32f4xx_i2c.c \
+	$(CMSIS_DIR)/device/stm32f4xx_spi.c \
+	$(CMSIS_DIR)/device/stm32f4xx_usart.c \
+	$(CMSIS_DIR)/device/stm32f4xx_syscfg.c \
+	$(CMSIS_DIR)/device/stm32f4xx_exti.c   \
+	$(CMSIS_DIR)/device/misc.c \
+	$(CMSIS_DIR)/device/system_stm32f4xx.c
+
+USBCBC_SRC = \
+	$(USBCDC_DIR)/usb_bsp.c \
+	$(USBCDC_DIR)/usb_core.c \
+	$(USBCDC_DIR)/usb_dcd.c \
+	$(USBCDC_DIR)/usb_dcd_int.c \
+	$(USBCDC_DIR)/usbd_cdc_core.c \
+	$(USBCDC_DIR)/usbd_cdc_vcp.c \
+	$(USBCDC_DIR)/usbd_core.c \
+	$(USBCDC_DIR)/usbd_desc.c \
+	$(USBCDC_DIR)/usbd_ioreq.c \
+	$(USBCDC_DIR)/usbd_req.c \
+	$(USBCDC_DIR)/usbd_usr.c
+
+USTACK_ETH_SRC = \
+	$(USTACK_DIR)/utils.c \
+	$(USTACK_DIR)/tuntap_if.c \
+	$(USTACK_DIR)/eth_netif.c \
+	$(USTACK_DIR)/bootp.c \
+	$(USTACK_DIR)/arp.c \
+	$(USTACK_DIR)/ip.c \
+	$(USTACK_DIR)/icmp.c \
+	$(USTACK_DIR)/udp.c
+
+USTACK_SLIP_SRC = \
+	$(USTACK_DIR)/utils.c \
+	$(USTACK_DIR)/slip_netif.c \
+	$(USTACK_DIR)/ip.c \
+	$(USTACK_DIR)/icmp.c \
+	$(USTACK_DIR)/udp.c
+
+HAL_SRC = \
+	$(HAL_DIR)/setjmp.s \
+	$(HAL_DIR)/aeabi.s \
+	$(HAL_DIR)/muldiv.c \
+	$(HAL_DIR)/stm32f4_vector.c \
+	$(HAL_DIR)/usart.c \
+	$(HAL_DIR)/libc.c
+	
+APP_SRC = \
+	$(APP_DIR)/main.c
+
 
 all: cmsis usbcdc ustack_eth hal app link
 
 cmsis:
-	$(CC) $(CFLAGS) \
-		$(CMSIS_DIR)/device/stm32f4xx_rcc.c    \
-		$(CMSIS_DIR)/device/stm32f4xx_gpio.c   \
-		$(CMSIS_DIR)/device/stm32f4xx_tim.c   \
-		$(CMSIS_DIR)/device/stm32f4xx_adc.c   \
-		$(CMSIS_DIR)/device/stm32f4xx_i2c.c \
-		$(CMSIS_DIR)/device/stm32f4xx_spi.c \
-		$(CMSIS_DIR)/device/stm32f4xx_usart.c \
-		$(CMSIS_DIR)/device/stm32f4xx_syscfg.c \
-		$(CMSIS_DIR)/device/stm32f4xx_exti.c   \
-		$(CMSIS_DIR)/device/misc.c \
-		$(CMSIS_DIR)/device/system_stm32f4xx.c
+	$(CC) $(CFLAGS) $(CMSIS_SRC)
 
 usbcdc:
-	$(CC) $(CFLAGS) \
-		$(USBCDC_DIR)/usb_bsp.c \
-		$(USBCDC_DIR)/usb_core.c \
-		$(USBCDC_DIR)/usb_dcd.c \
-		$(USBCDC_DIR)/usb_dcd_int.c \
-		$(USBCDC_DIR)/usbd_cdc_core.c \
-		$(USBCDC_DIR)/usbd_cdc_vcp.c \
-		$(USBCDC_DIR)/usbd_core.c \
-		$(USBCDC_DIR)/usbd_desc.c \
-		$(USBCDC_DIR)/usbd_ioreq.c \
-		$(USBCDC_DIR)/usbd_req.c \
-		$(USBCDC_DIR)/usbd_usr.c
-		
+	$(CC) $(CFLAGS) $(USBCBC_SRC)
+	
 ustack_eth:
-	$(CC) $(CFLAGS) \
-		$(USTACK_DIR)/utils.c \
-		$(USTACK_DIR)/tuntap_if.c \
-		$(USTACK_DIR)/eth_netif.c \
-		$(USTACK_DIR)/bootp.c \
-		$(USTACK_DIR)/arp.c \
-		$(USTACK_DIR)/ip.c \
-		$(USTACK_DIR)/icmp.c \
-		$(USTACK_DIR)/udp.c
+	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_ETH_SRC)
 		
 ustack_slip:
-	$(CC) $(CFLAGS) \
-		$(USTACK_DIR)/utils.c \
-		$(USTACK_DIR)/slip_netif.c \
-		$(USTACK_DIR)/ip.c \
-		$(USTACK_DIR)/icmp.c \
-		$(USTACK_DIR)/udp.c
-		
+	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_SLIP_SRC)
+
 hal:
-	$(CC) $(CFLAGS) \
-		$(PROJECT_DIR)/src/hal/setjmp.s \
-		$(PROJECT_DIR)/src/hal/aeabi.s \
-		$(PROJECT_DIR)/src/hal/muldiv.c \
-		$(PROJECT_DIR)/src/hal/stm32f4_vector.c \
-		$(PROJECT_DIR)/src/hal/usart.c \
-		$(PROJECT_DIR)/src/hal/libc.c
-	
+	$(CC) $(CFLAGS) $(HAL_SRC)
+
 app:
-	$(CC) $(CFLAGS) \
-		$(PROJECT_DIR)/src/main.c
+	$(CC) $(CFLAGS) $(AFLAGS) $(APP_SRC)
 
 link:
-	$(LD) $(LDFLAGS) -T$(LDSCRIPT) -Map firmware.map -o firmware.elf *.o 
-	$(DUMP) --disassemble --reloc firmware.elf > firmware.lst	
-	$(DUMP) -h firmware.elf > firmware.sec
-	$(DUMP) -s firmware.elf > firmware.cnt
-	$(OBJ) -O binary firmware.elf firmware.bin
-	$(OBJ) -R .eeprom -O ihex firmware.elf firmware.hex
+	$(LD) $(LDFLAGS) -T$(LDSCRIPT) -Map $(PROG).map -o $(PROG).elf *.o 
+	$(DUMP) --disassemble --reloc $(PROG).elf > $(PROG).lst	
+	$(DUMP) -h $(PROG).elf > $(PROG).sec
+	$(DUMP) -s $(PROG).elf > $(PROG).cnt
+	$(OBJ) -O binary $(PROG).elf $(PROG).bin
+	$(OBJ) -R .eeprom -O ihex $(PROG).elf $(PROG).hex
 	$(SIZE) firmware.elf
 
 flash:
-	dfu-util -a 0 -s 0x08000000 -D firmware.bin
+	dfu-util -a 0 -s 0x08000000 -D $(PROG).bin
 
 tuntap_host:
 	gcc $(AFLAGS) -Wall $(USTACK_DIR)/tuntap_if_host.c -o tuntap_if_host
