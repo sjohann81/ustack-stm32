@@ -1,5 +1,3 @@
-# TODO
-
 # uStack-STM32 - A portable and minimalistic IP stack, ported to the STM32
 
 Ported from https://github.com/sjohann81/ustack.

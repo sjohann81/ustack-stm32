@@ -16,12 +16,12 @@ libc basic I/O support
 
 void putchar(char value)
 {
-	uart_tx(1, value);
+	uart_tx(USART_PORT, value);
 }
 
 int32_t kbhit(void)
 {
-	if (uart_rxsize(1) > 0)
+	if (uart_rxsize(USART_PORT) > 0)
 		return 1;
 	else
 		return 0;
@@ -29,7 +29,7 @@ int32_t kbhit(void)
 
 int32_t getchar(void)
 {
-	return uart_rx(1);
+	return uart_rx(USART_PORT);
 }
 
 char *strcpy(char *s1, const char *s2)
@@ -207,6 +207,18 @@ char *strtok(char *s, const char *delim)
 	}
 }
 
+char *strtok_r(char *s, const char *delim, char **holder)
+{
+	if (s)
+		*holder = s;
+
+	do {
+		s = strsep(holder, delim);
+	} while (s && !*s);
+
+	return s;
+}
+
 int32_t strtol(const char *s, char **end, int32_t base)
 {
 	int32_t i;
@@ -358,6 +370,24 @@ char *gets(char *s)
 		return 0;
 	*cs++ = '\0';
 	
+	return s;
+}
+
+char *fgets(char *s, int n, void *f)
+{
+	int ch;
+	char *p = s;
+
+	while (n > 1) {
+		ch = getchar();
+		*p++ = ch;
+		n--;
+		if (ch == '\n')
+			break;
+	}
+	if (n)
+		*p = '\0';
+
 	return s;
 }
 
