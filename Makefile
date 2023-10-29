@@ -109,6 +109,13 @@ USTACK_SLIP_SRC = \
 	$(USTACK_DIR)/ip.c \
 	$(USTACK_DIR)/icmp.c \
 	$(USTACK_DIR)/udp.c
+	
+USTACK_IP_SRC = \
+	$(USTACK_DIR)/utils.c \
+	$(USTACK_DIR)/ip_netif.c \
+	$(USTACK_DIR)/ip.c \
+	$(USTACK_DIR)/icmp.c \
+	$(USTACK_DIR)/udp.c
 
 HAL_SRC = \
 	$(HAL_DIR)/setjmp.s \
@@ -130,11 +137,14 @@ cmsis:
 usbcdc:
 	$(CC) $(CFLAGS) $(USBCBC_SRC)
 	
-ustack_eth:
+ustack_eth: tuntap_host
 	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_ETH_SRC)
 		
 ustack_slip:
 	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_SLIP_SRC)
+	
+ustack_ip:
+	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_IP_SRC)
 
 hal:
 	$(CC) $(CFLAGS) $(HAL_SRC)
@@ -158,21 +168,26 @@ tuntap_host:
 	gcc $(AFLAGS) -Wall $(USTACK_DIR)/tuntap_if_host.c -o tuntap_if_host
 
 serial:
-	sudo chmod 666 ${SERIAL_DEV}
+#	sudo chmod 666 ${SERIAL_DEV}
 	stty -F ${SERIAL_DEV} ${SERIAL_BR} raw cs8 -echo
 
-eth_up: serial tuntap_host
+# needs setcap to allow non root access
+# sudo apt-get install libcap2-bin
+# sudo setcap cap_net_raw,cap_net_admin=eip /bin/ip
+# sudo setcap cap_net_raw,cap_net_admin=eip tuntap_if_host
+eth_up: serial
 	./tuntap_if_host ${SERIAL_DEV}
 
 slip_up: serial
 	slattach -L -d -p slip -s ${SERIAL_BR} ${SERIAL_DEV} &
-	sleep 2
-	ifconfig sl0 ${USTACK_GW_ADDR}
-	ifconfig sl0 dstaddr ${USTACK_IP_ADDR}
-	ifconfig sl0 mtu 576
-	
+	sleep 1
+	ifconfig sl0 ${USTACK_GW_ADDR} pointopoint ${USTACK_IP_ADDR} up mtu 576
+
 slip_down:
 	killall slattach
+
+ip_up:
+	socat -ddd -x ${SERIAL_DEV},raw,echo=0,b${SERIAL_BR},clocal TUN:${USTACK_TAP_ADDR},up
 	
 config_ip:
 	ping ${USTACK_IP_ADDR} -s 113 -c 1
