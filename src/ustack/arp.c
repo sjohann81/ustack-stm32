@@ -6,7 +6,7 @@
 
 #include "ustack.h"
 
-struct arp_entry_s arp_cache[ARP_CACHE_SIZE];
+struct arp_entry_s arp_cache[ARP_CACHE_SIZE] = { 0 };
 static uint32_t arp_index = 0;
 
 int32_t arp_reply(uint8_t *frame)
