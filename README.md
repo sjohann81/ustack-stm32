@@ -6,13 +6,13 @@ uStack is a quick-and-dirty implementation of most common network protocols of I
 
 ## Configuration (TUN/TAP interface)
 
-Just type *make* to build the firmware. To run it on a STM32 BlackPill, connect the board via USB, enter in programming mode (more details below) and type *make flash*. After the programming process, hit reset then connect to the board using the virtual serial port created by the USB CDC driver with the TUN/TAP tunnel using *sudo make eth_up* then try the demo.
+Just type *make* to build the firmware. To run it on a STM32 BlackPill, connect the board via USB, enter in programming mode (more details below) and type *make flash*. You will need the *dfu-util* package installed in your system. After the programming process, hit reset then connect to the board using the virtual serial port created by the USB CDC driver with the TUN/TAP tunnel using *sudo make eth_up* then try the demo. If you don't have permissions to access the virtual serial port, run the provided *mk-udev-rules-stm32.sh* script.
 
 Before reprogramming the board, be sure to bring the TUN/TAP tunnel down using Ctrl+c on the terminal running it. This process is needed because the same serial port is used for both programming and communicating with the host. If you have a different board, or arranged a different configuration on a breadboard, you may not need this (such as using a different serial port).
 
 ## Configuration (SLIP interface)
 
-Change the rule *all* in the Makefile to build the slip stack (ustack_eth -> ustack_slip) then type *make* to build the firmware. To run it on a STM32 BlackPill, connect the board via USB and type *make flash*. After the programming process, hit reset and connect to the board using the serial port created by the USB CDC driver with *sudo make slip_up* then try the demo.
+Change the rule *all* in the Makefile to build the slip stack (ustack_eth -> ustack_slip) then type *make* to build the firmware. To run it on a STM32 BlackPill, connect the board via USB and type *make flash*. After the programming process, hit reset and connect to the board using the serial port created by the USB CDC driver with *sudo make slip_up* then try the demo. If you don't have permissions to access the virtual serial port, run the provided *mk-udev-rules-stm32.sh* script.
 
 Before reprogramming the board, be sure to bring the SLIP interface down with *sudo make slip_down*. This process is needed because the same serial port is used for both programming and communicating with the host. If you have a different board, or arranged a different configuration on a breadboard, you may not need this.
 
