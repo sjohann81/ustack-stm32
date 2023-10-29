@@ -29,6 +29,7 @@ char *strtok(char *s, const char *delim);
 char *strtok_r(char *s, const char *delim, char **holder);
 int32_t strtol(const char *s, char **end, int32_t base);
 int32_t atoi(const char *s);
+void itoa(int32_t i, char *s, int32_t base);
 void *memcpy(void *dst, const void *src, uint32_t n);
 void *memmove(void *dst, const void *src, uint32_t n);
 int32_t memcmp(const void *cs, const void *ct, uint32_t n);
@@ -42,5 +43,4 @@ char *fgets(char *s, int n, void *f);
 char *getline(char *s);
 int32_t printf(const char *fmt, ...);
 int32_t sprintf(char *out, const char *fmt, ...);
-
 
