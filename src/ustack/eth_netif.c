@@ -80,7 +80,7 @@ uint16_t netif_recv(uint8_t *packet)
 					if (ntohs(frame_s->payload.arp.proto_type) == FRAME_IP){
 						if (ntohs(frame_s->payload.arp.hw_len_proto_len) == IP_HLEN_PLEN){
 							if (ntohs(frame_s->payload.arp.operation) == OP_ARP_REQUEST) {
-								if (!memcmp(&frame_s->payload.arp.target_pa, myip, 4)){
+								if (!memcmp(frame_s->payload.arp.target_pa, myip, 4)){
 									len = arp_reply(frame);
 
 									en_ll_output(frame, len);
@@ -90,7 +90,7 @@ uint16_t netif_recv(uint8_t *packet)
 							}
 
 							if (ntohs(frame_s->payload.arp.operation) == OP_ARP_ANSWER)
-								arp_update((uint8_t *)&frame_s->payload.arp.sender_pa, (uint8_t *)&frame_s->payload.arp.sender_ha);
+								arp_update(frame_s->payload.arp.sender_pa, frame_s->payload.arp.sender_ha);
 						}
 					}
 				}

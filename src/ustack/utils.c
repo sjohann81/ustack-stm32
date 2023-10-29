@@ -136,7 +136,7 @@ int32_t config(uint8_t addr[4], char *str)
 
 	strncpy(buf, str, sizeof(buf)-1);
 	p = strtok(buf, delim);
-	for (i = 0; i < 4 && p != NULL; i++) {
+	for (i = 0; i < 4 && p != 0; i++) {
 		addr[i] = atoi(p);
 		p = strtok(NULL, delim);
 	}

@@ -25,7 +25,7 @@ void bootp_make_request(uint8_t *frame)
 	bootp->bootp.bp_htype = HTYPE_ETHERNET;
 	bootp->bootp.bp_hlen = 6;
 	for (i = 0; i < 4; i++) {
-		c = rand() & 0xff;
+		c = random() & 0xff;
 		bootp->bootp.bp_xid[i] = c;
 		temp_xid[i] = c;
 	}
