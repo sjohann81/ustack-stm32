@@ -43,3 +43,5 @@ union double_long {
 
 float atof(const char *p);
 int32_t ftoa(float f, char *outbuf, int32_t precision);
+float ntohf(uint32_t val);
+uint32_t htonf(float val);

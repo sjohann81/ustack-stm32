@@ -2,9 +2,7 @@
 software implementation of IEEE single-precision floating point
 */
 
-#include <stdint.h>
-#include <libc.h>
-#include <ieee754.h>
+#include <ustack.h>
 
 /* add two floats */
 float __addsf3(float a1, float a2){
@@ -1024,3 +1022,22 @@ int32_t ftoa(float f, char *outbuf, int32_t precision)
 
 	return 0;
 }
+
+float ntohf(uint32_t val)
+{
+	union float_long fl;
+
+	fl.u = ntohl(val);
+
+	return fl.f;
+}
+
+uint32_t htonf(float val)
+{
+	union float_long fl;
+
+	fl.f = val;
+
+	return htonl(fl.u);
+}
+

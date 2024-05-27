@@ -1,7 +1,6 @@
 #include "stm32f4xx.h"
 #include "system_stm32f4xx.h"
 #include "hal.h"
-#include "aeabi_float.h"
 
 extern int main(void);
 
