@@ -119,7 +119,7 @@ int16_t uart_init(uint8_t port, uint32_t baud, uint8_t polled){
 		GPIO_Init(GPIOA, &GPIO_InitStruct);
 		
 		GPIO_SetBits(GPIOA, GPIO_Pin_15);
-		delay_ms(100);
+		delay_ms(500);
 
 		USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &USR_desc, &USBD_CDC_cb, &USR_cb);
 		
@@ -326,9 +326,15 @@ uint16_t uart_rxsize(uint8_t port)
 
 void uart_tx(uint8_t port, uint8_t data)
 {
+	static int bytes = 0;
+	
 	switch (port) {
 	case 0:
 		VCP_putchar(data);
+		if (bytes++ == 100) {
+			bytes = 0;
+			delay_ms(5);
+		}
 		break;
 	case 1:
 		// Wait until transmit data register is empty

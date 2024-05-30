@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 extern uint32_t SystemCoreClock;          /*!< System Clock Frequency (Core Clock) */
 
 #define ID_UNIQUE_ADDRESS		0x1FFF7A10
