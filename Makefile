@@ -35,6 +35,7 @@ PROJECT_DIR	= .
 HAL_DIR		= $(PROJECT_DIR)/src/hal
 CMSIS_DIR	= $(PROJECT_DIR)/src/cmsis
 USBCDC_DIR	= $(PROJECT_DIR)/src/usb_cdc
+COOS_DIR	= $(PROJECT_DIR)/src/coos
 USTACK_DIR	= $(PROJECT_DIR)/src/ustack
 APP_DIR		= $(PROJECT_DIR)/src
 
@@ -44,6 +45,7 @@ INC_DIRS  = \
 	-I $(CMSIS_DIR)/core \
 	-I $(CMSIS_DIR)/device \
 	-I $(USBCDC_DIR) \
+	-I $(COOS_DIR) \
 	-I $(USTACK_DIR)
 
 # serial port
@@ -60,8 +62,8 @@ LDFLAGS_STRIP = --gc-sections
 # this is stuff used everywhere - compiler and flags should be declared (ASFLAGS, CFLAGS, LDFLAGS, LD_SCRIPT, CC, AS, LD, DUMP, READ, OBJ and SIZE).
 MCU_DEFINES = -mcpu=cortex-m4 -mtune=cortex-m4 -mfloat-abi=hard -mthumb -fsingle-precision-constant -mfpu=fpv4-sp-d16 -Wdouble-promotion
 #MCU_DEFINES = -mcpu=cortex-m4 -mtune=cortex-m4 -mfloat-abi=soft -mabi=atpcs -mthumb -fsingle-precision-constant
-C_DEFINES = -D STM32F401xC -D HSE_VALUE=25000000
-#C_DEFINES = -D STM32F407xx -D HSE_VALUE=8000000
+C_DEFINES = -D STM32F401xC -D HSE_VALUE=25000000 -D LITTLE_ENDIAN
+#C_DEFINES = -D STM32F407xx -D HSE_VALUE=8000000 -D LITTLE_ENDIAN
 CFLAGS = -Wall -O2 -c $(MCU_DEFINES) -mapcs-frame -fverbose-asm -nostdlib -ffreestanding $(C_DEFINES) $(INC_DIRS) -D USART_BAUD=$(SERIAL_BR) -D USART_PORT=$(SERIAL_PORT) $(CFLAGS_STRIP)
 
 LDFLAGS = $(LDFLAGS_STRIP)
@@ -125,18 +127,27 @@ HAL_SRC = \
 	$(HAL_DIR)/usart.c \
 	$(HAL_DIR)/libc.c \
 	$(HAL_DIR)/ieee754.c
+
+COOS_SRC = \
+	$(COOS_DIR)/coos.c
+	
+APPCOOS_SRC = \
+	$(APP_DIR)/main_coos.c
 	
 APP_SRC = \
 	$(APP_DIR)/main.c
 
 
-all: cmsis usbcdc ustack_eth hal app link
+all: cmsis usbcdc coos ustack_eth hal app link
 
 cmsis:
 	$(CC) $(CFLAGS) $(CMSIS_SRC)
 
 usbcdc:
 	$(CC) $(CFLAGS) $(USBCBC_SRC)
+
+coos:
+	$(CC) $(CFLAGS) $(COOS_SRC)
 	
 ustack_eth: tuntap_host
 	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_ETH_SRC)
@@ -152,6 +163,9 @@ hal:
 
 app:
 	$(CC) $(CFLAGS) $(AFLAGS) $(APP_SRC)
+
+app_coos:
+	$(CC) $(CFLAGS) $(AFLAGS) $(APPCOOS_SRC)
 
 link:
 	$(LD) $(LDFLAGS) -T$(LDSCRIPT) -Map $(PROG).map -o $(PROG).elf *.o 
