@@ -59,6 +59,36 @@ void *network_task(void *)
 	return 0;
 }
 
+void *hello_task(void *)
+{
+	uint8_t *packet = eth_frame + sizeof(struct eth_s);
+	uint8_t dst_addr[4] = {172, 31, 69, 55};
+	uint8_t dst_mac[6] = {0x00, 0x00, 0x00, 0x33, 0x33, 0x33};
+	uint16_t src_port, dst_port;
+	char *msg = "Send this to the network...";
+	char data[512];
+	static int count = 0;
+	static int pkt = 1;
+
+	// send a packet every 50k calls...
+	if (count++ % 50000 == 0) {
+		src_port = 12345;
+		dst_port = 5555;
+		// generate data
+		sprintf(data, "%s %d\n", msg, pkt);
+		// fill datagram payload
+		memcpy(packet + sizeof(struct ip_udp_s), data, strlen(data));
+		// update arp entry with fake MAC address
+		arp_update(dst_addr, dst_mac);
+		// send bogus data: UDP -> IP -> Ethernet
+		udp_out(dst_addr, dst_port, src_port, packet, sizeof(struct udp_s) + strlen(data));
+		GPIO_ToggleBits(GPIOC, GPIO_Pin_13);
+		pkt++;
+	}
+	
+	return 0;
+}
+
 void led_init()
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -93,7 +123,8 @@ int main(void)
 	/* setup CoOS and tasks */
 	task_pinit(ptasks);
 	task_add(ptasks, network_task, 50);
-
+	task_add(ptasks, hello_task, 150);
+	
 	while (1) {
 		task_schedule(ptasks);
 	}
