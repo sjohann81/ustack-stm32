@@ -9,8 +9,8 @@
 # configurable section
 USTACK_IP_ADDR =	172.31.69.20
 USTACK_NETMASK =	255.255.255.0
-USTACK_GW_ADDR =	172.31.69.1
-USTACK_TAP_ADDR =	172.31.69.1/24
+USTACK_GW_ADDR =	172.31.69.254
+USTACK_TAP_ADDR =	172.31.69.254/24
 USTACK_TAP_ROUTE =	172.31.69.0/24
 
 # compiler flags section
@@ -138,7 +138,7 @@ APP_SRC = \
 	$(APP_DIR)/main.c
 
 
-all: cmsis usbcdc coos ustack_eth hal app link
+all: cmsis usbcdc coos ustack_eth hal app_coos link
 
 cmsis:
 	$(CC) $(CFLAGS) $(CMSIS_SRC)
@@ -149,7 +149,7 @@ usbcdc:
 coos:
 	$(CC) $(CFLAGS) $(COOS_SRC)
 	
-ustack_eth: tuntap_host
+ustack_eth:
 	$(CC) $(CFLAGS) $(AFLAGS) $(USTACK_ETH_SRC)
 		
 ustack_slip:
@@ -182,14 +182,14 @@ flash:
 tuntap_host:
 	gcc $(AFLAGS) -Wall $(USTACK_DIR)/tuntap_if_host.c -o tuntap_if_host
 
-serial:
-#	sudo chmod 666 ${SERIAL_DEV}
-	stty -F ${SERIAL_DEV} ${SERIAL_BR} raw cs8 -echo
-
 # needs setcap to allow non root access
 # sudo apt-get install libcap2-bin
-# sudo setcap cap_net_raw,cap_net_admin=eip /bin/ip
-# sudo setcap cap_net_raw,cap_net_admin=eip tuntap_if_host
+tuntap_cap:
+	setcap cap_net_raw,cap_net_admin=eip tuntap_if_host
+
+serial:
+	stty -F ${SERIAL_DEV} ${SERIAL_BR} raw cs8 -echo
+
 eth_up: serial
 	./tuntap_if_host ${SERIAL_DEV}
 
@@ -214,4 +214,8 @@ sim:
 	qemu-system-gnuarmeclipse -cpu cortex-m4 -machine STM32F4-Discovery -s --verbose --verbose -serial mon:stdio -kernel firmware.bin
 
 clean:
-	rm -rf *.o *~ firmware.* tuntap_if_host
+	rm -rf *.o *~ firmware.*
+
+veryclean: clean
+	rm -f tuntap_if_host
+
