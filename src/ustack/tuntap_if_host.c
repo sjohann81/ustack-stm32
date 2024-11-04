@@ -18,10 +18,12 @@
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <stddef.h>
 
 #define FRAME_SIZE	600
 #define SERIAL_TO	50000
 #define TUN_TO		50000
+#define TUN_DEV		"/dev/net/tun"
 
 static int32_t tun_fd;
 static char *dev;
@@ -69,6 +71,7 @@ int32_t tun_data_recv(void){
 	return select(tun_fd + 1, &fds, NULL, NULL, &timeout);
 }
 
+/*
 static int32_t set_if_route(char *dev, char *cidr)
 {
 	char buf[256];
@@ -101,6 +104,7 @@ static int32_t set_if_up(char *dev)
 	
 	return 0;
 }
+*/
 
 static int32_t tun_alloc(char *dev)
 {
@@ -108,7 +112,7 @@ static int32_t tun_alloc(char *dev)
 	int32_t fd, err;
 	struct ifreq s;
 
-	if ((fd = open("/dev/net/tun", O_RDWR | O_NOCTTY)) < 0) {
+	if ((fd = open(TUN_DEV, O_RDWR | O_NOCTTY)) < 0) {
 		printf("[FATAL] Cannot open TUN/TAP dev\nMake sure one exists with '$ mknod /dev/net/tun c 10 200'\n");
 		exit(-1);
 	}
@@ -137,19 +141,48 @@ static int32_t tun_alloc(char *dev)
 	return fd;
 }
 
+#define ifreq_offsetof(x) offsetof(struct ifreq, x)
+
 int32_t if_setup()
 {
 	dev = calloc(10, 1);
 	tun_fd = tun_alloc(dev);
 
-	if (set_if_up(dev) != 0)
-		printf("[FATAL] Setting up interface failed.\n");
+//	if (set_if_up(dev) != 0)
+//		printf("[FATAL] Setting up interface failed.\n");
 
-	if (set_if_route(dev, taproute) != 0)
-		printf("[FATAL] Setting route for interface failed\n");
+//	if (set_if_route(dev, taproute) != 0)
+//		printf("[FATAL] Setting route for interface failed\n");
 
-	if (set_if_address(dev, tapaddr) != 0)
-		printf("[FATAL] Setting address for interface failed\n");
+//	if (set_if_address(dev, tapaddr) != 0)
+//		printf("[FATAL] Setting address for interface failed\n");
+	struct ifreq ifr;
+	struct sockaddr_in sai;
+	int sockfd; /* socket fd we use to manipulate stuff with */
+	char *p;
+
+	/* Create a channel to the NET kernel. */
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	/* get interface name */
+	strncpy(ifr.ifr_name, "tap0", IFNAMSIZ);
+
+	memset(&sai, 0, sizeof(struct sockaddr));
+	sai.sin_family = AF_INET;
+	sai.sin_port   = 0;
+
+	sai.sin_addr.s_addr = inet_addr(USTACK_GW_ADDR);
+
+	p = (char *) &sai;
+	memcpy((((char *) &ifr + ifreq_offsetof(ifr_addr))), p,
+	   sizeof(struct sockaddr));
+
+	ioctl(sockfd, SIOCSIFADDR, &ifr);
+	ioctl(sockfd, SIOCGIFFLAGS, &ifr);
+	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+	// ifr.ifr_flags &= ~selector;  // unset something
+	ioctl(sockfd, SIOCSIFFLAGS, &ifr);
+	close(sockfd);
 		
 	return 0;
 }
